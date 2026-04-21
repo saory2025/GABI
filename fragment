@@ -1,0 +1,696 @@
+
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PROTOCOL_13 :: INTRUSION</title>
+  <!-- CHAVE-FANTASMA: o passado também compila -->
+  <style>
+    :root {
+      --bg: #000000;
+      --neon: #00ff00;
+      --danger: #8aff8a;
+      --ghost: rgba(0, 255, 0, 0.14);
+      --shake-intensity: 0px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--neon);
+      font-family: "Courier New", Courier, monospace;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      letter-spacing: 0.4px;
+      text-shadow: 0 0 5px rgba(0, 255, 0, 0.3);
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background: repeating-linear-gradient(
+        to bottom,
+        rgba(0, 0, 0, 0) 0px,
+        rgba(0, 0, 0, 0) 2px,
+        rgba(0, 255, 0, 0.05) 3px,
+        rgba(0, 255, 0, 0.02) 4px
+      );
+      mix-blend-mode: screen;
+      animation: scan 8s linear infinite;
+      z-index: 9;
+    }
+
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background: radial-gradient(circle at center, transparent 10%, rgba(0, 0, 0, 0.5) 100%);
+      z-index: 10;
+    }
+
+    @keyframes scan {
+      0% { transform: translateY(-5%); }
+      100% { transform: translateY(5%); }
+    }
+
+    @keyframes blink {
+      0%, 49% { opacity: 1; }
+      50%, 100% { opacity: 0; }
+    }
+
+    @keyframes tremor {
+      0% { transform: translate(0, 0); }
+      25% { transform: translate(var(--shake-intensity), calc(var(--shake-intensity) * -1)); }
+      50% { transform: translate(calc(var(--shake-intensity) * -1), var(--shake-intensity)); }
+      75% { transform: translate(var(--shake-intensity), var(--shake-intensity)); }
+      100% { transform: translate(0, 0); }
+    }
+
+    @keyframes ghost-noise {
+      0%, 100% { opacity: 0; }
+      10% { opacity: 0.06; }
+      12% { opacity: 0; }
+      78% { opacity: 0.03; }
+      80% { opacity: 0; }
+    }
+
+    .noise {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 8;
+      background-image:
+        repeating-radial-gradient(circle at 0 0, rgba(0, 255, 0, 0.08) 0 1px, transparent 1px 2px);
+      animation: ghost-noise 4s steps(3) infinite;
+    }
+
+    #core {
+      width: min(860px, 92vw);
+      border: 1px solid rgba(0, 255, 0, 0.3);
+      padding: 2rem;
+      position: relative;
+      background: linear-gradient(to bottom, rgba(0, 255, 0, 0.03), rgba(0, 255, 0, 0.005));
+      backdrop-filter: blur(1.5px);
+      animation: tremor 0.2s linear infinite;
+    }
+
+    .topline {
+      opacity: 0.7;
+      font-size: 0.8rem;
+      margin-bottom: 1rem;
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+
+    #terminal {
+      min-height: 270px;
+      white-space: pre-wrap;
+      line-height: 1.5;
+      padding-bottom: 1rem;
+    }
+
+    #input-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      border-top: 1px dashed rgba(0, 255, 0, 0.35);
+      padding-top: 0.9rem;
+    }
+
+    .prompt {
+      font-weight: bold;
+      color: #afffaf;
+    }
+
+    #answer {
+      width: 100%;
+      color: var(--neon);
+      background: transparent;
+      border: none;
+      outline: none;
+      font: inherit;
+      caret-color: var(--neon);
+    }
+
+    #answer[disabled] { opacity: 0.35; }
+
+    .cursor {
+      display: inline-block;
+      width: 10px;
+      height: 1.1em;
+      background: var(--neon);
+      animation: blink 0.9s infinite;
+      vertical-align: middle;
+      margin-left: 4px;
+    }
+
+    .glitch {
+      position: relative;
+      display: inline-block;
+    }
+
+    .glitch::before,
+    .glitch::after {
+      content: attr(data-text);
+      position: absolute;
+      left: 0;
+      top: 0;
+      opacity: 0.6;
+      pointer-events: none;
+    }
+
+    .glitch::before {
+      transform: translate(-1px, 0);
+      color: #4eff4e;
+      clip-path: inset(0 0 45% 0);
+    }
+
+    .glitch::after {
+      transform: translate(1px, 0);
+      color: #a1ffa1;
+      clip-path: inset(60% 0 0 0);
+    }
+
+    .important { color: #c8ffc8; font-weight: bold; }
+    .shiver { --shake-intensity: 1px; }
+    .hidden { opacity: 0; position: absolute; left: -9999px; }
+
+    #invisible-click {
+      position: fixed;
+      width: 120px;
+      height: 120px;
+      right: 3vw;
+      bottom: 4vh;
+      opacity: 0;
+      z-index: 20;
+    }
+
+    #status {
+      margin-top: 0.7rem;
+      min-height: 1.2rem;
+      font-size: 0.9rem;
+    }
+
+    #status.denied { color: #72ff72; opacity: 0.8; }
+    #status.ok { color: #e0ffe0; font-weight: bold; }
+
+    #ghost-layer {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 15;
+      opacity: 0;
+      display: grid;
+      place-items: center;
+      font-size: clamp(1rem, 2.5vw, 1.8rem);
+      letter-spacing: 0.2em;
+    }
+
+    #ghost-layer.show {
+      opacity: 1;
+      transition: opacity 0.8s ease;
+    }
+
+    .rare {
+      opacity: 0.4;
+      font-size: 0.75rem;
+      margin-top: 0.8rem;
+    }
+
+    /* dica-casca: 72 79 77 69 = HOME */
+    [data-shard="ε"]::after {
+      content: "";
+    }
+  </style>
+</head>
+<body>
+  <div class="noise" aria-hidden="true"></div>
+
+  <main id="core" data-root="protocol" data-echo="S0U5MV9MSVZF" class="shiver">
+    <div class="topline">
+      <span class="glitch" data-text="CANAL: NÃO AUTORIZADO">CANAL: NÃO AUTORIZADO</span>
+      <span id="clock"></span>
+    </div>
+
+    <section id="terminal" aria-live="polite"></section>
+
+    <div id="input-wrap">
+      <span class="prompt">&gt;&gt;</span>
+      <input id="answer" autocomplete="off" spellcheck="false" autofocus data-cipher="qnexarff" />
+      <span class="cursor"></span>
+    </div>
+
+    <div id="status"></div>
+    <div class="rare" id="rare"></div>
+
+    <span id="hidden-fragment" class="hidden" data-frag="N0UNCQ==">ARQUIVO_CORROMPIDO</span>
+  </main>
+
+  <div id="ghost-layer">VOCÊ JÁ ESTEVE AQUI ANTES.</div>
+  <button id="invisible-click" aria-hidden="true" tabindex="-1"></button>
+
+  <script>
+    // falsa pista: a resposta final NÃO é "liberdade"
+    // ... ou é?
+    (() => {
+      const terminal = document.getElementById("terminal");
+      const answer = document.getElementById("answer");
+      const status = document.getElementById("status");
+      const clock = document.getElementById("clock");
+      const rare = document.getElementById("rare");
+      const ghost = document.getElementById("ghost-layer");
+      const invisibleClick = document.getElementById("invisible-click");
+
+      const memory = JSON.parse(localStorage.getItem("arg_protocol_memory") || "{}");
+      const state = {
+        level: memory.level || 0,
+        errors: memory.errors || 0,
+        lockUntil: memory.lockUntil || 0,
+        idleTimer: null,
+        rareShown: false,
+        konamiUnlocked: memory.konamiUnlocked || false,
+        hiddenClickUnlocked: memory.hiddenClickUnlocked || false,
+        operator: memory.operator || "",
+        crashUsed: memory.crashUsed || false,
+        timingGate: null,
+      };
+
+      const konami = ["ArrowUp","ArrowUp","ArrowDown","ArrowDown","ArrowLeft","ArrowRight","ArrowLeft","ArrowRight","b","a"];
+      let konamiPos = 0;
+
+      const levels = [
+        {
+          id: "BOOT",
+          intro: [
+            "[BOOT] SESSÃO FANTASMA DETECTADA.",
+            "Identifique-se. Informe seu NOME-OPERADOR.",
+            "(somente letras, sem espaços)"
+          ],
+          validator: (input) => /^[a-zA-Z]{3,20}$/.test(input),
+          onSuccess: (input) => {
+            state.operator = input;
+            log(`Operador registrado: ${input.toUpperCase()}`);
+          }
+        },
+        {
+          id: "BIN_01",
+          intro: [
+            "NÍVEL 1 // BINÁRIO",
+            "01010000 01001111 01010010 01010100 01000001"
+          ],
+          validator: (input) => normalize(input) === "porta"
+        },
+        {
+          id: "B64_02",
+          intro: [
+            "NÍVEL 2 // BASE64",
+            "U0VHVU5EQQ=="
+          ],
+          validator: (input) => normalize(input) === "segunda"
+        },
+        {
+          id: "MORSE_03",
+          intro: [
+            "NÍVEL 3 // MORSE",
+            "... .. .-.. . -. -.-. .. ---"
+          ],
+          validator: (input) => normalize(input) === "silencio"
+        },
+        {
+          id: "CESAR_04",
+          intro: [
+            "NÍVEL 4 // CÉSAR (+3)",
+            "GHVFRQILDQFD"
+          ],
+          validator: (input) => normalize(input) === "desconfianca"
+        },
+        {
+          id: "ANAGRAMA_05",
+          intro: [
+            "NÍVEL 5 // ANAGRAMA",
+            "ARPMGOAR -> reorganize",
+            "Dica: você já viu em sistemas antigos"
+          ],
+          validator: (input) => normalize(input) === "programa"
+        },
+        {
+          id: "SEQ_06",
+          intro: [
+            "NÍVEL 6 // SEQUÊNCIA",
+            "2, 3, 5, 8, 13, ?"
+          ],
+          validator: (input) => normalize(input) === "21"
+        },
+        {
+          id: "INV_07",
+          intro: [
+            "NÍVEL 7 // TEXTO INVERTIDO",
+            "odanimretse oãn odnum"
+          ],
+          validator: (input) => normalize(input) === "mundo nao esretnimado" || normalize(input) === "mundo nao exterminado"
+        },
+        {
+          id: "TIME_08",
+          intro: [
+            "NÍVEL 8 // PADRÃO DE TEMPO",
+            "Espere 13 segundos SEM digitar.",
+            "Depois responda: estou pronto"
+          ],
+          setup: () => {
+            state.timingGate = Date.now() + 13000;
+          },
+          validator: (input) => Date.now() >= state.timingGate && normalize(input) === "estou pronto"
+        },
+        {
+          id: "FALSE_09",
+          intro: [
+            "NÍVEL 9 // LÓGICA REVERSA",
+            "Pergunta: Qual senha abre tudo?",
+            "A resposta correta tradicional será recusada."
+          ],
+          validator: (input) => normalize(input) === "nenhuma",
+          onFailHint: "VOCÊ PROCURA A CHAVE, MAS A CHAVE É NEGAR A CHAVE."
+        },
+        {
+          id: "DEV_10",
+          intro: [
+            "NÍVEL 10 // INSPEÇÃO",
+            "Há algo no console.",
+            "Talvez um comando que não deveria existir."
+          ],
+          setup: () => {
+            console.log("[SISTEMA] Se você lê isso, digite no console: arg.invoke('orbita')");
+          },
+          validator: () => state.konamiUnlocked,
+          onFailHint: "TALVEZ O TECLADO NÃO SEJA O ÚNICO TERMINAL."
+        },
+        {
+          id: "COMBO_11",
+          intro: [
+            "NÍVEL 11 // COMBINAÇÃO",
+            "Use o resultado do nível BIN_01 + nível MORSE_03.",
+            "formato: palavra1-palavra2"
+          ],
+          validator: (input) => normalize(input) === "porta-silencio"
+        },
+        {
+          id: "ABS_12",
+          intro: [
+            "NÍVEL 12 // CHARADA ABSTRATA",
+            "Quanto mais você tira, maior eu fico.",
+            "responda em português"
+          ],
+          validator: (input) => normalize(input) === "buraco"
+        },
+        {
+          id: "FINAL_13",
+          intro: [
+            "NÍVEL 13 // VERDADE",
+            "Última validação.",
+            "Quem está observando você?"
+          ],
+          validator: (input) => {
+            const n = normalize(input);
+            return ["eu", "voce", "o sistema", "ninguem", "todos"].includes(n);
+          },
+          onSuccess: () => {
+            ending();
+          }
+        }
+      ];
+
+      function normalize(v) {
+        return v
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .trim()
+          .replace(/\s+/g, " ");
+      }
+
+      function save() {
+        localStorage.setItem("arg_protocol_memory", JSON.stringify({
+          level: state.level,
+          errors: state.errors,
+          lockUntil: state.lockUntil,
+          konamiUnlocked: state.konamiUnlocked,
+          hiddenClickUnlocked: state.hiddenClickUnlocked,
+          operator: state.operator,
+          crashUsed: state.crashUsed,
+        }));
+      }
+
+      function glitchMoment(message = "SINAL PERDIDO") {
+        ghost.textContent = message;
+        ghost.classList.add("show");
+        setTimeout(() => ghost.classList.remove("show"), 1500);
+      }
+
+      function setStatus(msg, ok = false) {
+        status.textContent = msg;
+        status.className = ok ? "ok" : "denied";
+      }
+
+      function typeLine(text, speed = 18) {
+        return new Promise((resolve) => {
+          const line = document.createElement("div");
+          terminal.appendChild(line);
+          let i = 0;
+          const timer = setInterval(() => {
+            line.textContent += text[i++] || "";
+            if (i > text.length) {
+              clearInterval(timer);
+              resolve();
+            }
+          }, speed + Math.floor(Math.random() * 20));
+        });
+      }
+
+      async function log(line, speed) {
+        await typeLine(line, speed);
+        terminal.scrollTop = terminal.scrollHeight;
+      }
+
+      async function showLevel() {
+        terminal.textContent = "";
+        setStatus("");
+        const lvl = levels[state.level];
+        if (!lvl) return;
+
+        for (const line of lvl.intro) {
+          await log(line);
+          await sleep(180);
+        }
+
+        if (lvl.setup) lvl.setup();
+
+        // pista escondida por espaçamento: p  r  o  t  o  c  o  l  o
+        answer.disabled = false;
+        answer.focus();
+      }
+
+      function sleep(ms) {
+        return new Promise(r => setTimeout(r, ms));
+      }
+
+      async function deny(extra) {
+        state.errors++;
+        setStatus("ACESSO NEGADO");
+
+        if (state.errors % 3 === 0) {
+          const lockSec = 6 + Math.min(20, state.errors);
+          state.lockUntil = Date.now() + lockSec * 1000;
+          answer.disabled = true;
+          await log(`[LOCK] Tentativas excedidas. Aguarde ${lockSec}s.`);
+          setTimeout(() => {
+            answer.disabled = false;
+            setStatus("SISTEMA REATIVADO");
+          }, lockSec * 1000);
+        }
+
+        if (extra) await log(extra, 12);
+        if (state.errors > 5 && Math.random() < 0.35) glitchMoment("ELE SABE QUE VOCÊ ERROU");
+        save();
+      }
+
+      async function grant() {
+        setStatus("ACESSO CONCEDIDO", true);
+        await sleep(450);
+        state.level++;
+        save();
+        if (state.level < levels.length) {
+          await showLevel();
+        }
+      }
+
+      answer.addEventListener("keydown", async (e) => {
+        if (e.key !== "Enter") return;
+        const val = answer.value;
+        answer.value = "";
+
+        if (Date.now() < state.lockUntil) {
+          setStatus("TERMINAL BLOQUEADO");
+          return;
+        }
+
+        const lvl = levels[state.level];
+        if (!lvl) return;
+
+        // comando secreto estilo terminal
+        if (val.startsWith("/")) {
+          await handleCommand(val);
+          return;
+        }
+
+        const passed = lvl.validator(val);
+        if (passed) {
+          if (lvl.onSuccess) lvl.onSuccess(val);
+          await grant();
+        } else {
+          await deny(lvl.onFailHint);
+        }
+      });
+
+      async function handleCommand(raw) {
+        const cmd = normalize(raw.slice(1));
+        if (cmd === "clear") {
+          terminal.textContent = "";
+          await log("buffer limpo.");
+        } else if (cmd === "status") {
+          await log(`errores=${state.errors} nivel=${state.level + 1} operador=${state.operator || "anon"}`);
+        } else if (cmd === "help") {
+          await log("comandos: /clear /status /echo [texto]");
+        } else if (cmd.startsWith("echo ")) {
+          await log(cmd.replace(/^echo\s+/, ""));
+        } else {
+          await log("comando inválido.");
+        }
+      }
+
+      // console hook
+      window.arg = {
+        invoke(code) {
+          if (normalize(code) === "orbita") {
+            state.konamiUnlocked = true;
+            save();
+            console.log("[SISTEMA] alteração aceita.");
+            glitchMoment("CAMADA ABERTA");
+            return "ok";
+          }
+          return "negado";
+        },
+        dump() {
+          return { ...state };
+        }
+      };
+
+      document.addEventListener("keydown", (e) => {
+        const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+        if (k === konami[konamiPos]) {
+          konamiPos++;
+          if (konamiPos === konami.length) {
+            konamiPos = 0;
+            state.hiddenClickUnlocked = true;
+            save();
+            glitchMoment("SEQUÊNCIA ACEITA");
+            console.log("[HINT] canto inferior direito.");
+          }
+        } else {
+          konamiPos = 0;
+        }
+      });
+
+      invisibleClick.addEventListener("click", async () => {
+        if (!state.hiddenClickUnlocked) return;
+        await log("Você tocou a área que não deveria existir.");
+        await log("Pista: " + atob("Vk9DRSBFIFBBUlRFIERPIFNJU1RFTUE="));
+      });
+
+      function fourthWall() {
+        if (state.errors >= 4) {
+          log(`Você insiste, ${state.operator || "intruso"}. Isso parece familiar.`);
+        }
+        if (state.errors >= 8) {
+          log("Seu padrão de erro coincide com sessões arquivadas em 1999.");
+        }
+      }
+
+      function idleWatch() {
+        clearTimeout(state.idleTimer);
+        state.idleTimer = setTimeout(async () => {
+          await log("[IDLE] Quanto mais você espera, mais ele observa.", 15);
+          if (Math.random() < 0.4) glitchMoment("NÃO FIQUE PARADO");
+        }, 21000);
+      }
+
+      ["mousemove", "keydown", "click"].forEach(evt => {
+        window.addEventListener(evt, idleWatch, { passive: true });
+      });
+
+      function tickClock() {
+        const d = new Date();
+        const hh = String(d.getHours()).padStart(2, "0");
+        const mm = String(d.getMinutes()).padStart(2, "0");
+        const ss = String(d.getSeconds()).padStart(2, "0");
+        clock.textContent = `UTC? ${hh}:${mm}:${ss}`;
+
+        if (ss === "13" && Math.random() < 0.2) {
+          rare.textContent = "mensagem rara: a 13ª batida abre portas que não existem.";
+        } else if (!state.rareShown && Math.random() < 0.004) {
+          state.rareShown = true;
+          rare.textContent = "erro falso detectado: ignore a próxima falha.";
+        }
+      }
+
+      async function fakeCrash() {
+        if (state.crashUsed || state.errors < 6) return;
+        state.crashUsed = true;
+        save();
+        terminal.textContent = "";
+        await log("!!! KERNEL PANIC !!!", 8);
+        await log("Desconectando módulo de vigilância...", 12);
+        await sleep(1400);
+        terminal.textContent = "";
+        await showLevel();
+      }
+
+      async function ending() {
+        answer.disabled = true;
+        terminal.textContent = "";
+        await log("[FIM] Decodificação final em andamento...");
+        await sleep(900);
+        await log(`${(state.operator || "INTRUSO").toUpperCase()}, você nunca invadiu nada.`);
+        await sleep(700);
+        await log("Você foi o teste. O sistema precisava de um reflexo humano.");
+        await sleep(700);
+        await log("Toda escolha sua foi prevista antes do primeiro ENTER.");
+        await sleep(900);
+        glitchMoment("VOCÊ É PARTE DO SISTEMA");
+        await log("Se quiser recomeçar: /clear e recarregue.");
+      }
+
+      // mensagem escondida em atributos data-*
+      document.body.dataset.archive = "QVNTRU1CTFk6IG5lbWh1bSBzaXN0ZW1hIGV4dGVybm8=";
+
+      setInterval(tickClock, 1000);
+      setInterval(() => {
+        fourthWall();
+        fakeCrash();
+      }, 5000);
+
+      // mensagem invertida escondida aqui: ametsis od etrap e ecov
+      showLevel();
+      idleWatch();
+    })();
+  </script>
+</body>
+</html>
